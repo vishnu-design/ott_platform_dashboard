@@ -7,6 +7,42 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# --- SAFE PLOTLY LAYOUT HELPER ---
+def safe_update_layout(fig, title_text, xaxis_title, yaxis_title, theme, **kwargs):
+    """
+    Safely update Plotly figure layout with proper nested structure.
+    This prevents titlefont errors by using correct Plotly syntax.
+    """
+    try:
+        layout_dict = {
+            'title': {
+                'text': str(title_text),
+                'font': {'size': 18, 'color': str(theme.get('primary', '#000000')), 'family': 'Orbitron'}
+            },
+            'xaxis': {
+                'title': {'text': str(xaxis_title), 'font': {'color': str(theme.get('secondary', '#000000'))}},
+                'tickfont': {'color': str(theme.get('text', '#000000'))},
+                'gridcolor': str(theme.get('gridline_color', '#E0E0E0'))
+            },
+            'yaxis': {
+                'title': {'text': str(yaxis_title), 'font': {'color': str(theme.get('secondary', '#000000'))}},
+                'tickfont': {'color': str(theme.get('text', '#000000'))},
+                'gridcolor': str(theme.get('gridline_color', '#E0E0E0'))
+            },
+            'plot_bgcolor': str(theme.get('chart_bg', 'rgba(255, 255, 255, 0.6)')),
+            'paper_bgcolor': str(theme.get('paper_bg', 'rgba(255, 255, 255, 0.3)')),
+            'font': {'color': str(theme.get('text', '#000000'))}
+        }
+        
+        # Add any extra kwargs
+        layout_dict.update(kwargs)
+        
+        fig.update_layout(**layout_dict)
+    except Exception as e:
+        st.warning(f"⚠️ Could not apply custom theme: {str(e)}")
+    
+    return fig
+
 # --- UTILITY: HEX TO RGBA CONVERTER ---
 def hex_to_rgba(hex_color, opacity=0.1):
     """Converts a 6-character hex color to an rgba string with specified opacity."""
@@ -622,30 +658,15 @@ def render_H1_local_language(df, theme):
             customdata=ratio_df['count'].tolist()
         ))
         
-        try:
-            fig_ratio.update_layout(
-                title={
-                    'text': "🌍 Local Content Distribution by Platform",
-                    'font': {'size': 18, 'color': primary_color, 'family': 'Orbitron'}
-                },
-                xaxis={
-                    'title': {'text': "Platform", 'font': {'color': secondary_color}},
-                    'tickfont': {'color': text_color},
-                    'gridcolor': grid_color
-                },
-                yaxis={
-                    'title': {'text': "Local Content Ratio (%)", 'font': {'color': secondary_color}},
-                    'tickfont': {'color': text_color},
-                    'gridcolor': grid_color
-                },
-                plot_bgcolor=chart_bg,
-                paper_bgcolor=paper_bg,
-                font={'color': text_color},
-                hovermode='x unified',
-                showlegend=False
-            )
-        except Exception as e:
-            st.warning(f"⚠️ Could not apply custom theme to bar chart. Using default styling. Error: {str(e)}")
+        safe_update_layout(
+            fig_ratio,
+            title_text="🌍 Local Content Distribution by Platform",
+            xaxis_title="Platform",
+            yaxis_title="Local Content Ratio (%)",
+            theme=theme,
+            hovermode='x unified',
+            showlegend=False
+        )
         
         st.plotly_chart(fig_ratio, use_container_width=True)
 
@@ -668,33 +689,19 @@ def render_H1_local_language(df, theme):
                         hovertemplate='<b>%{fullData.name}</b><br>Year: %{x}<br>Local: %{y:.1f}%<extra></extra>'
                     ))
                 
-                # Apply layout separately for Line Chart
-                fig_trend.update_layout(
-                    title={
-                        'text': f"📈 Localization Evolution ({year_range[0]}-{year_range[1]})",
-                        'font': {'size': 18, 'color': primary_color, 'family': 'Orbitron'}
-                    },
-                    xaxis={
-                        'title': "Release Year",
-                        'titlefont': {'color': secondary_color},
-                        'tickfont': {'color': text_color},
-                        'gridcolor': grid_color
-                    },
-                    yaxis={
-                        'title': "Local Content Ratio (%)",
-                        'titlefont': {'color': secondary_color},
-                        'tickfont': {'color': text_color},
-                        'gridcolor': grid_color
-                    },
-                    plot_bgcolor=chart_bg,
-                    paper_bgcolor=paper_bg,
-                    font={'color': text_color},
+                # Apply layout using safe helper
+                safe_update_layout(
+                    fig_trend,
+                    title_text=f"📈 Localization Evolution ({year_range[0]}-{year_range[1]})",
+                    xaxis_title="Release Year",
+                    yaxis_title="Local Content Ratio (%)",
+                    theme=theme,
                     hovermode='x unified',
                     legend={
-                        'title': {'text': "Platform", 'font': {'color': primary_color}},
-                        'font': {'color': text_color},
-                        'bgcolor': chart_bg,
-                        'bordercolor': primary_color,
+                        'title': {'text': "Platform", 'font': {'color': str(theme.get('primary', '#000000'))}},
+                        'font': {'color': str(theme.get('text', '#000000'))},
+                        'bgcolor': str(theme.get('chart_bg', 'rgba(255, 255, 255, 0.6)')),
+                        'bordercolor': str(theme.get('primary', '#000000')),
                         'borderwidth': 1
                     }
                 )
@@ -854,26 +861,12 @@ def render_H2_recency(df, theme):
             annotation_font_color=theme["primary"]
         )
         
-        fig_hist.update_layout(
-            title=dict(
-                text="📊 Netflix Content Volume Timeline",
-                font=dict(size=18, color=theme["primary"], family='Orbitron')
-            ),
-            xaxis=dict(
-                title="Release Year",
-                titlefont=dict(color=theme["secondary"]),
-                tickfont=dict(color=theme["text"]),
-                gridcolor=grid_color
-            ),
-            yaxis=dict(
-                title="Number of Titles",
-                titlefont=dict(color=theme["secondary"]),
-                tickfont=dict(color=theme["text"]),
-                gridcolor=grid_color
-            ),
-            plot_bgcolor=theme["chart_bg"],
-            paper_bgcolor=theme["paper_bg"],
-            font=dict(color=theme["text"]),
+        safe_update_layout(
+            fig_hist,
+            title_text="📊 Netflix Content Volume Timeline",
+            xaxis_title="Release Year",
+            yaxis_title="Number of Titles",
+            theme=theme,
             bargap=0.05,
             showlegend=False
         )
@@ -900,33 +893,19 @@ def render_H2_recency(df, theme):
             }
         )
         
-        fig_area.update_layout(
-            title=dict(
-                text=f"📈 Content Production Swimlane (Post-2000)",
-                font=dict(size=18, color=theme["primary"], family='Orbitron')
-            ),
-            xaxis=dict(
-                title="Release Year",
-                titlefont=dict(color=theme["secondary"]),
-                tickfont=dict(color=theme["text"]),
-                gridcolor=grid_color
-            ),
-            yaxis=dict(
-                title="Number of Titles Added",
-                titlefont=dict(color=theme["secondary"]),
-                tickfont=dict(color=theme["text"]),
-                gridcolor=grid_color
-            ),
-            plot_bgcolor=theme["chart_bg"],
-            paper_bgcolor=theme["paper_bg"],
-            font=dict(color=theme["text"]),
+        safe_update_layout(
+            fig_area,
+            title_text=f"📈 Content Production Swimlane (Post-2000)",
+            xaxis_title="Release Year",
+            yaxis_title="Number of Titles Added",
+            theme=theme,
             hovermode='x unified',
-            legend=dict(
-                font=dict(color=theme["text"], size=12),
-                bgcolor=theme["chart_bg"],
-                bordercolor=theme["primary"],
-                borderwidth=1
-            )
+            legend={
+                'font': {'color': str(theme.get('text', '#000000')), 'size': 12},
+                'bgcolor': str(theme.get('chart_bg', 'rgba(255, 255, 255, 0.6)')),
+                'bordercolor': str(theme.get('primary', '#000000')),
+                'borderwidth': 1
+            }
         )
         
         st.plotly_chart(fig_area, use_container_width=True)
